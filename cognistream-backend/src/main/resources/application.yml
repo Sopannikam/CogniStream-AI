@@ -1,0 +1,67 @@
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    session:
+      cookie:
+        name: COGNISTREAM_SESSION
+        http-only: true
+        same-site: lax
+      timeout: 7d
+
+spring:
+  application:
+    name: cognistream-backend
+  config:
+    import: "optional:file:../.env[.properties],optional:file:.env[.properties]"
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/cognistream_db}
+    username: ${DB_USER:cognistream_user}
+    password: ${DB_PASSWORD:local-development-only}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: ${GITHUB_CLIENT_ID:not-configured}
+            client-secret: ${GITHUB_CLIENT_SECRET:not-configured}
+            scope: read:user,repo
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:not-configured}
+      chat:
+        options:
+          model: ${OPENAI_CHAT_MODEL:gpt-4o-mini}
+          temperature: 0.2
+      embedding:
+        options:
+          model: text-embedding-3-small
+    vectorstore:
+      pgvector:
+        initialize-schema: true
+        dimensions: 1536
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+
+app:
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
+  cors:
+    allowed-origins: ${FRONTEND_URL:http://localhost:3000}
+  token-encryptor-password: ${TOKEN_ENCRYPTOR_PASSWORD:local-development-change-this-password}
+  token-encryptor-salt: ${TOKEN_ENCRYPTOR_SALT:0123456789abcdef}
+  indexing:
+    max-file-bytes: 102400
+    chunk-size: 800
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never

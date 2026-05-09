@@ -4,10 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class CognistreamBackendApplication {
+public class CogniStreamApplication{
 
 	public static void main(String[] args) {
-		SpringApplication.run(CognistreamBackendApplication.class, args);
+		SpringApplication.run(CogniStreamApplication.class, args);
 	}
 
 }
