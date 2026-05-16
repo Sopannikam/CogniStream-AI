@@ -7,8 +7,10 @@ Verified locally on 12 October 2026:
 - SSE frontend tests: 3 passed. They cover fragmented UTF-8, CRLF framing, provider errors, and interrupted responses.
 - Frontend ESLint: passed.
 - Frontend compilation and TypeScript checking: passed.
-- Full frontend production build: generated-file creation was blocked by Windows EPERM permissions in the agent environment. The GitHub Actions workflow runs the complete build on Linux.
+- Full frontend production build: passed on Linux in GitHub Actions. The local Windows agent encountered EPERM while creating generated files.
 - Live PostgreSQL/pgvector operation: not verified because access to Docker's local engine was denied.
 - Live GitHub OAuth and OpenAI calls: require the owner's credentials and have not been verified.
+
+GitHub Actions run: https://github.com/Sopannikam/CogniStream-AI/actions/runs/38273222323 — backend and frontend jobs both passed, including the full production build.
 
 This file records actual evidence. Complete the live walkthrough in SUBMISSION.md before demonstrating the project.
