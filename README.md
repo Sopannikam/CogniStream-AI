@@ -2,7 +2,11 @@
 
 Understand your GitHub repositories through retrieval-augmented chat. Connect GitHub, sync your repositories, index their code, and ask questions with streamed answers and source citations.
 
-This project follows Chai aur Code's [Spring Boot, RAG and GenAI tutorial](https://www.youtube.com/watch?v=R8VBA_KtUo0). Its implementation is adapted from the [instructor's DevPilot repository](https://github.com/Aestheticsuraj234/devPilot), with the student's package name and project branding, complete environment configuration, and fixes verified by automated tests. See [implementation notes](docs/IMPLEMENTATION.md) for the adaptations. This is a repository assistant, matching that tutorial's scope.
+[![Build and test](https://github.com/Sopannikam/CogniStream-AI/actions/workflows/ci.yml/badge.svg)](https://github.com/Sopannikam/CogniStream-AI/actions/workflows/ci.yml)
+
+**Example:** index a repository, then ask “Where is authentication configured?” The backend retrieves relevant code chunks and streams an answer with links to the source files.
+
+[Setup](docs/SETUP.md) · [Architecture](docs/IMPLEMENTATION.md) · [API](docs/API.md) · [Verification](docs/VERIFICATION.md)
 
 ## Features
 
@@ -14,11 +18,20 @@ This project follows Chai aur Code's [Spring Boot, RAG and GenAI tutorial](https
 - Repository-scoped semantic retrieval for each question.
 - Persistent chat sessions and messages.
 - Server-sent event streaming, Markdown rendering, and clickable GitHub citations.
-- The tutorial's repository dashboard, overview, settings, and light/dark themes.
+- Repository dashboard, overview, settings, and light/dark themes.
 
 ## Stack
 
-Java 21, Spring Boot 4.1.0, Spring AI 2.0.0, JPA, Spring Security OAuth2 Client, PostgreSQL 16 with pgvector; Next.js 16.2.12, React 19, TypeScript, Tailwind CSS, TanStack Query, and the instructor's UI components.
+| Backend | Frontend | Infrastructure |
+| --- | --- | --- |
+| Java 21, Spring Boot 4.1, Spring AI 2.0 | Next.js 16, React 19, TypeScript | PostgreSQL 16, pgvector, Docker Compose |
+| Spring Security OAuth2, Spring Data JPA | Tailwind CSS, TanStack Query, Streamdown | GitHub Actions, OpenAI chat and embeddings |
+
+## How it works
+
+GitHub OAuth establishes a session. Repository sync stores metadata; an indexing job reads source files from the default branch, splits them into chunks, and saves their embeddings in pgvector. Each chat question retrieves the eight closest chunks from that repository. The backend sends the question and code context to the model, streams its reply over SSE, and saves the conversation.
+
+Ownership checks restrict repository and chat access to the signed-in user. GitHub tokens are encrypted before storage. Indexing failures remain visible and can be retried.
 
 ## Run locally
 
@@ -60,7 +73,7 @@ Windows convenience scripts under `scripts/` run these same commands. Backend co
 
 ```powershell
 cd cognistream-backend
-.\mvnw.cmd -Duser.timezone=Asia/Kolkata test
+.\mvnw.cmd '-Duser.timezone=Asia/Kolkata' test
 .\mvnw.cmd -DskipTests package
 cd ..\client
 npm ci
@@ -97,3 +110,7 @@ See [submission guide](docs/SUBMISSION.md), [API routes](docs/API.md), and [arch
 ## Practical limits
 
 GitHub sync reads at most 1,000 repositories, matching the instructor's pagination cap. Indexing skips unsupported/generated files and files over 100 KiB. GitHub errors for individual files are logged; empty or failed embedding jobs stay FAILED. Large truncated GitHub trees are rejected instead of silently indexing only part of the repository. Citations identify retrieved source files; precise line ranges are optional and are not invented. Chat uses the current question and retrieved code, matching the tutorial, while storing conversation history for display. OpenAI usage requires an API key and available API quota/credits.
+
+## Credits
+
+Adapted from Chai aur Code's [Spring Boot, RAG and GenAI tutorial](https://www.youtube.com/watch?v=R8VBA_KtUo0) and the instructor's [DevPilot source](https://github.com/Aestheticsuraj234/devPilot). Changes include CogniStream branding, environment setup, default-branch file retrieval, indexing failure handling, and SSE parsing and lifecycle fixes. The [implementation notes](docs/IMPLEMENTATION.md) explain these changes.

@@ -42,7 +42,7 @@ public class CodeFileFilter {
             "composer.lock",
             "cargo.lock",
             "poetry.lock");
-// backend\src\main\java\devPilot\backend\repository\filename.java
+
     public boolean isEligible(String path, long sizeBytes, long maxFileBytes) {
         if (path == null || path.isBlank()) {
             return false;
@@ -79,7 +79,7 @@ public class CodeFileFilter {
         return ALLOWED_EXTENSIONS.contains(ext);
     }
 
- public String detectLanguage(String path) {
+    public String detectLanguage(String path) {
         String lower = path.toLowerCase(Locale.ROOT);
         String fileName = lower.substring(lower.lastIndexOf('/') + 1);
         if ("dockerfile".equals(fileName)) {

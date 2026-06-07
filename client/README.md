@@ -1,36 +1,34 @@
-CogniStream AI frontend, adapted from the instructor's DevPilot client. See the [root README](../README.md) for the complete setup and tutorial attribution.
+# CogniStream AI client
 
-## Getting Started
+The Next.js client for GitHub login, repository sync, indexing progress, and chat. See the [project README](../README.md) for setup and tutorial credit.
 
-First, run the development server:
+## Development
 
-```bash
+Start the backend on port 8080, then run:
+
+```sh
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000. To change the backend address, copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_API_BASE_URL`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Checks
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```sh
+npm test
+npm run lint
+npm run build
+```
 
-## Learn More
+Streaming tests cover split UTF-8 characters, SSE framing, server errors, and interrupted responses. Run `npm start` to preview a production build.
 
-To learn more about Next.js, take a look at the following resources:
+## Code layout
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `app/`: routes and layouts.
+- `components/dashboard/`: repository sync, filters, and indexing status.
+- `components/chat/`: sessions, messages, composer, and source citations.
+- `hooks/`: authentication and query state.
+- `lib/stream-chat.ts`: reads the backend SSE stream.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Shared UI primitives live in `components/ui/`; Markdown answers use Streamdown. Fonts use the local system stack, so builds do not need to download fonts.

@@ -26,11 +26,7 @@ import com.sopannikam.cognistream.services.ai.CodeContextRetriever;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Chat sessions and the RAG chat pipeline entry point.
- *
- * <p>{@link #streamReply} orchestrates the full flow:
- * validate → save user message → retrieve code context → build prompts → stream AI reply.
- * Each step is implemented in a dedicated class under {@code service.ai}.
+ * Manages repository chat sessions and retrieves code context before streaming replies.
  */
 @Service
 @RequiredArgsConstructor
@@ -89,28 +85,23 @@ public class ChatService {
     }
 
     public SseEmitter streamReply(UUID userId, UUID sessionId, String userContent) {
-        // 1. Ensure the session exists and the repo is indexed
         ChatSession session = requireSession(userId, sessionId);
         Repository repo = repoService.requireOwned(session.getRepositoryId(), userId);
         if (repo.getIndexStatus() != IndexStatus.READY) {
             throw new BadRequestException("Repository is not ready for chat");
         }
 
-        // 2. Persist the user's message
         ChatMessage userMessage = chatMessageRepository.save(ChatMessage.builder()
                 .sessionId(session.getId())
                 .role(MessageRole.USER)
                 .content(userContent)
                 .build());
 
-        // 3. RAG retrieval — find code chunks similar to the question
         var retrievedContext = codeContextRetriever.retrieve(repo.getId(), userContent);
 
-        // 4. Build LLM prompts from retrieved context + question
         String systemPrompt = chatPromptBuilder.systemPrompt(repo.getFullName());
         String userPrompt = chatPromptBuilder.userPrompt(retrievedContext.contextText(), userContent);
 
-        // 5. Stream OpenAI response to the client (SSE)
         return chatStreamHandler.stream(
                 session.getId(),
                 toMessageResponse(userMessage),
