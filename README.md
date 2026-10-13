@@ -60,4 +60,4 @@ docs/                Setup, architecture, and API documentation
 
 Run backend checks with `.\mvnw.cmd '-Duser.timezone=Asia/Kolkata' verify` inside `cognistream-backend/`. In `client/`, use `npm test`, `npm run lint`, and `npm run build`.
 
-[Architecture](docs/IMPLEMENTATION.md) · [API endpoints](docs/API.md)
+
