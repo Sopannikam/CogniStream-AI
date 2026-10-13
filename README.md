@@ -114,3 +114,5 @@ GitHub sync reads at most 1,000 repositories, matching the instructor's paginati
 ## Credits
 
 Adapted from Chai aur Code's [Spring Boot, RAG and GenAI tutorial](https://www.youtube.com/watch?v=R8VBA_KtUo0) and the instructor's [DevPilot source](https://github.com/Aestheticsuraj234/devPilot). Changes include CogniStream branding, environment setup, default-branch file retrieval, indexing failure handling, and SSE parsing and lifecycle fixes. The [implementation notes](docs/IMPLEMENTATION.md) explain these changes.
+
+The nine historical commit timestamps were adjusted to March–June 2026. Verification took place on October 12, 2026. See [history notes](docs/HISTORY.md) for the original dates and CI evidence.
