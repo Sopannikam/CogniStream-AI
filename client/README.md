@@ -1,6 +1,6 @@
 # CogniStream AI client
 
-The Next.js client for GitHub login, repository sync, indexing progress, and chat. See the [project README](../README.md) for setup and tutorial credit.
+The Next.js client for GitHub login, repository sync, indexing progress, and chat. See the [project README](../README.md) for setup.
 
 ## Development
 

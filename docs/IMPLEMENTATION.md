@@ -2,6 +2,8 @@
 
 The implementation follows the video and the instructor's DevPilot repository. Package names and UI branding are adapted to CogniStream AI. The original UI structure and feature scope are retained.
 
+Source links are listed in [acknowledgements](CREDITS.md).
+
 ```mermaid
 flowchart LR
     Browser[Next.js browser UI] -->|GitHub login / session cookie| Backend[Spring Boot API]

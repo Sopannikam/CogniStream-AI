@@ -1,63 +1,51 @@
 # CogniStream AI
 
-Understand your GitHub repositories through retrieval-augmented chat. Connect GitHub, sync your repositories, index their code, and ask questions with streamed answers and source citations.
+A GitHub repository assistant that helps you explore a codebase through questions. Connect your GitHub account, index a repository, and get streamed answers with links to the relevant source files.
 
 [![Build and test](https://github.com/Sopannikam/CogniStream-AI/actions/workflows/ci.yml/badge.svg)](https://github.com/Sopannikam/CogniStream-AI/actions/workflows/ci.yml)
 
-**Example:** index a repository, then ask “Where is authentication configured?” The backend retrieves relevant code chunks and streams an answer with links to the source files.
-
-[Setup](docs/SETUP.md) · [Architecture](docs/IMPLEMENTATION.md) · [API](docs/API.md) · [Verification](docs/VERIFICATION.md)
-
 ## Features
 
-- GitHub OAuth login and session-based authentication.
-- Encrypted storage of GitHub access tokens.
-- Repository synchronization with search and indexing-status filters.
-- Asynchronous indexing with progress, retry, and failure states.
-- Code filtering and token-based splitting, OpenAI embeddings, and PostgreSQL/pgvector storage.
-- Repository-scoped semantic retrieval for each question.
-- Persistent chat sessions and messages.
-- Server-sent event streaming, Markdown rendering, and clickable GitHub citations.
-- Repository dashboard, overview, settings, and light/dark themes.
+- GitHub OAuth login with encrypted access-token storage.
+- Repository synchronization, search, and indexing-status filters.
+- Background code indexing with progress tracking and retries.
+- Repository-specific semantic retrieval using OpenAI embeddings and pgvector.
+- Chat sessions with saved messages, streamed Markdown answers, and source citations.
+- Repository ownership checks and light/dark themes.
 
-## Stack
+## Tech stack
 
 | Backend | Frontend | Infrastructure |
 | --- | --- | --- |
-| Java 21, Spring Boot 4.1, Spring AI 2.0 | Next.js 16, React 19, TypeScript | PostgreSQL 16, pgvector, Docker Compose |
-| Spring Security OAuth2, Spring Data JPA | Tailwind CSS, TanStack Query, Streamdown | GitHub Actions, OpenAI chat and embeddings |
+| Java 21, Spring Boot, Spring AI | Next.js, React, TypeScript | PostgreSQL 16, pgvector |
+| Spring Security OAuth2, Spring Data JPA | Tailwind CSS, TanStack Query, Streamdown | Docker Compose, GitHub Actions |
 
 ## How it works
 
-GitHub OAuth establishes a session. Repository sync stores metadata; an indexing job reads source files from the default branch, splits them into chunks, and saves their embeddings in pgvector. Each chat question retrieves the eight closest chunks from that repository. The backend sends the question and code context to the model, streams its reply over SSE, and saves the conversation.
+The indexing service reads eligible files from a repository's default branch, splits them into chunks, and stores their embeddings in pgvector. Each question retrieves the eight closest chunks from that repository. Spring AI sends the question and retrieved code to the model, and the frontend displays its response through server-sent events.
 
-Ownership checks restrict repository and chat access to the signed-in user. GitHub tokens are encrypted before storage. Indexing failures remain visible and can be retried.
+Chat history is saved for display. Each answer uses the current question and retrieved code context.
 
 ## Run locally
 
-Prerequisites: Java 21, Node.js 22 or newer compatible version, and running Docker Desktop with Linux containers. Use `localhost` consistently for both services.
+You need Java 21, Node.js 22, Docker Desktop with Linux containers, a GitHub OAuth app, and an OpenAI API key with available quota.
 
-1. Copy `.env.example` to `.env` in the project root. Fill `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, and `OPENAI_API_KEY`. Replace the encryption password and salt; the salt must be hexadecimal with an even length, at least 16 characters. Keep these values stable after your first sign-in.
-2. Follow [credential setup](docs/SETUP.md). Credentials stay on the backend; the browser receives only the public backend URL.
-3. Start the vector database from the project root:
+1. Copy `.env.example` to `.env` at the project root. Configure the GitHub credentials, OpenAI key, and encryption settings using the [setup guide](docs/SETUP.md).
+2. Start PostgreSQL and wait for it to become healthy:
 
    ```powershell
    docker compose up -d postgres
    docker compose ps
    ```
 
-   Wait until it is healthy. This configuration uses port **5433** and a new `cognistream_vector_data` volume. It does not replace your earlier plain PostgreSQL container or its data.
-
-4. Start the backend in a terminal:
+3. Start the backend:
 
    ```powershell
    cd cognistream-backend
    .\mvnw.cmd spring-boot:run
    ```
 
-   The Maven run configuration sets `Asia/Kolkata`, avoiding the earlier `Asia/Calcutta` connection failure. When using IntelliJ's Java Run configuration, add `-Duser.timezone=Asia/Kolkata` to VM options. Open `cognistream-backend/pom.xml` as the Maven project and select Java 21.
-
-5. Start the frontend in another terminal:
+4. In another terminal, start the frontend:
 
    ```powershell
    cd client
@@ -65,54 +53,49 @@ Prerequisites: Java 21, Node.js 22 or newer compatible version, and running Dock
    npm run dev
    ```
 
-6. Open [http://localhost:3000](http://localhost:3000). The backend runs on port 8080. Sign in, sync repositories, index a small code repository, then open chat.
+5. Open [localhost:3000](http://localhost:3000), sign in, sync your repositories, and index a repository before opening chat.
 
-Windows convenience scripts under `scripts/` run these same commands. Backend configuration imports the root `.env` automatically. Frontend defaults to `http://localhost:8080`; use `client/.env.local` only if changing its API address.
+The backend runs on port **8080** and PostgreSQL on **5433**. Windows launch scripts are available in `scripts/`.
 
-## Build and tests
+For IntelliJ IDEA, open `cognistream-backend/pom.xml`, select Java 21, and add `-Duser.timezone=Asia/Kolkata` to the application VM options.
+
+## Build and test
+
+Backend:
 
 ```powershell
 cd cognistream-backend
-.\mvnw.cmd '-Duser.timezone=Asia/Kolkata' test
-.\mvnw.cmd -DskipTests package
-cd ..\client
+.\mvnw.cmd '-Duser.timezone=Asia/Kolkata' verify
+```
+
+Frontend:
+
+```powershell
+cd client
 npm ci
-npm run test
+npm test
 npm run lint
 npm run build
 ```
 
-Backend tests use H2 and mock external AI/vector services. They check the actual application context, authentication boundaries, encrypted-token persistence, ownership checks, and indexing failure behavior. They do not demonstrate live OpenAI or pgvector operation. Production uses PostgreSQL and actual OpenAI models, with no mock-login or fabricated-answer mode.
+Backend tests use H2 and mocked external services. Frontend tests cover SSE decoding and error handling. GitHub Actions runs the backend and frontend checks. See [verification results](docs/VERIFICATION.md) for test coverage and live integration status.
 
-For a production frontend preview after building, run `npm start`. The build scripts use Next.js's supported Webpack mode for compatibility with this Windows environment.
-
-## Project structure
+## Project layout
 
 ```text
-cognistream-backend/  Spring Boot Maven application
-  src/main/java/com/sopannikam/cognistream/
-    config/          CORS, authentication, encryption, async execution
-    controllers/     Auth, repository, and chat REST endpoints
-    entity/          User, Repository, ChatSession, ChatMessage
-    repository/      JPA persistence
-    security/        GitHub OAuth user mapping and current-user checks
-    services/        Profile sync, repository sync, indexing, RAG, SSE
-client/              Next.js frontend, matching the tutorial flows
-docker/postgres/     Extension initialization
-docs/                Setup, architecture, API, and submission walkthrough
-scripts/             Windows start commands
+cognistream-backend/  Spring Boot API, persistence, indexing, and chat
+client/              Next.js dashboard and chat interface
+docker/postgres/     Database extension initialization
+scripts/             Windows launch scripts
+docs/                Setup and technical documentation
 ```
 
-## Submission walkthrough
+## Documentation
 
-See [submission guide](docs/SUBMISSION.md), [API routes](docs/API.md), and [architecture](docs/IMPLEMENTATION.md). Run the live walkthrough after filling credentials; a compile/test pass alone is not an end-to-end demo.
+- [Environment and credential setup](docs/SETUP.md)
+- [Architecture](docs/IMPLEMENTATION.md)
+- [API endpoints](docs/API.md)
 
-## Practical limits
+## Current limits
 
-GitHub sync reads at most 1,000 repositories, matching the instructor's pagination cap. Indexing skips unsupported/generated files and files over 100 KiB. GitHub errors for individual files are logged; empty or failed embedding jobs stay FAILED. Large truncated GitHub trees are rejected instead of silently indexing only part of the repository. Citations identify retrieved source files; precise line ranges are optional and are not invented. Chat uses the current question and retrieved code, matching the tutorial, while storing conversation history for display. OpenAI usage requires an API key and available API quota/credits.
-
-## Credits
-
-Adapted from Chai aur Code's [Spring Boot, RAG and GenAI tutorial](https://www.youtube.com/watch?v=R8VBA_KtUo0) and the instructor's [DevPilot source](https://github.com/Aestheticsuraj234/devPilot). Changes include CogniStream branding, environment setup, default-branch file retrieval, indexing failure handling, and SSE parsing and lifecycle fixes. The [implementation notes](docs/IMPLEMENTATION.md) explain these changes.
-
-The nine historical commit timestamps were adjusted to March–June 2026. Verification took place on October 12, 2026. See [history notes](docs/HISTORY.md) for the original dates and CI evidence.
+Repository sync reads up to 1,000 repositories. Indexing skips generated files, unsupported formats, and files larger than 100 KiB. Truncated GitHub trees and failed embedding jobs are reported as indexing failures. Citations link to retrieved files; exact line ranges are not available for every chunk.
