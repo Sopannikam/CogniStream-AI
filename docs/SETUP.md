@@ -20,7 +20,7 @@ Use a private long password for `TOKEN_ENCRYPTOR_PASSWORD` and at least 16 even-
 
 ## Database
 
-Start Docker Desktop, then `docker compose up -d postgres` from the root. The container is named `cognistream-pgvector`, with host port 5433 and database `cognistream_db`. Extensions are initialized from `docker/postgres/init-extensions.sql`; Spring AI creates the vector table, and JPA updates the application tables.
+Start Docker Desktop, then `docker compose up -d postgres` from the root. The Compose project is named `cognistream-local`; the container is `cognistream-pgvector`, and the database is `cognistream_db`. The host port comes from `DB_PORT` in `.env` (default 5433). If that port is occupied, change both `DB_PORT` and the port in `DB_URL`, then start Compose again. Extensions are initialized from `docker/postgres/init-extensions.sql`; Spring AI creates the vector table, and JPA updates the application tables.
 
 ## Troubleshooting
 
