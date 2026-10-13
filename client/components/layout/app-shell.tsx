@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogOut, Settings } from "lucide-react";
 
-import { CogniStreamIcon } from "@/components/icons/devpilot-icon";
+import { CogniStreamIcon } from "@/components/icons/cognistream-icon";
 
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import { useCurrentUser, useLogout } from "@/hooks/use-auth";

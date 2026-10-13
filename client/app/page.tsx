@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, FolderGit2, MessageSquareCode, Sparkles } from "lucide-react";
 
-import { CogniStreamIcon } from "@/components/icons/devpilot-icon";
+import { CogniStreamIcon } from "@/components/icons/cognistream-icon";
 import { BrandMark } from "@/components/layout/app-shell";
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import { buttonVariants } from "@/components/ui/button";
