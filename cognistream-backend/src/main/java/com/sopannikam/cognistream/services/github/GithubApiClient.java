@@ -54,6 +54,12 @@ public class GithubApiClient {
         return all;
     }
 
+    public Map<String, Object> getRepository(String accessToken, String owner, String repo) {
+        return client(accessToken).get()
+                .uri("/repos/{owner}/{repo}", owner, repo)
+                .retrieve().body(MAP);
+    }
+
       public Map<String, Object> getRepoTree(String accessToken, String owner, String repo, String branch) {
         return client(accessToken)
                 .get()

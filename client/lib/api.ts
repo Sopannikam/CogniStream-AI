@@ -119,6 +119,11 @@ export const api = {
 
   listRepos: (refresh = true) =>
     apiFetch<Repository[]>(`/api/repos?refresh=${refresh}`),
+  importPublicRepo: (url: string) =>
+    apiFetch<Repository>("/api/repos/import", {
+      method: "POST",
+      body: JSON.stringify({ url }),
+    }),
   getRepo: (id: string) => apiFetch<Repository>(`/api/repos/${id}`),
   startIndex: (id: string) =>
     apiFetch<Repository>(`/api/repos/${id}/index`, { method: "POST" }),

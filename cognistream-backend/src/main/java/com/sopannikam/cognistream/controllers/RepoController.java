@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import jakarta.validation.Valid;
+import com.sopannikam.cognistream.dto.ImportRepositoryRequest;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -38,6 +41,12 @@ public class RepoController {
             return repoService.syncAndListRepos(userId);
         }
         return repoService.listStored(userId);
+    }
+
+    @PostMapping("/import")
+    public RepositoryResponse importPublic(@Valid @RequestBody ImportRepositoryRequest request) {
+        UUID userId = currentUser.require().getId();
+        return repoService.importPublicRepository(userId, request.url());
     }
 
     @GetMapping("/{id}")

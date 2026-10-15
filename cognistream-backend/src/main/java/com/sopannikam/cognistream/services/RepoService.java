@@ -1,12 +1,14 @@
 package com.sopannikam.cognistream.services;
 
 import java.time.Instant;
-import java.util.ArrayList;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientResponseException;
+import com.sopannikam.cognistream.exceptions.BadRequestException;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.sopannikam.cognistream.dto.IndexStatusResponse;
@@ -32,45 +34,81 @@ public class RepoService {
         String token = userService.decryptAccessToken(user);
         List<Map<String, Object>> remoteRepos = gitHubApiClient.listUserRepos(token);
 
-        List<Repository> saved = new ArrayList<>();
-
-          for (Map<String, Object> remote : remoteRepos) {
-            Long githubRepoId = toLong(remote.get("id"));
-            Repository repo = repositoryRepository
-                    .findByUserIdAndGithubRepoId(userId, githubRepoId)
-                    .orElseGet(Repository::new);
-
-            String fullName = String.valueOf(remote.get("full_name"));
-            String[] parts = fullName.split("/", 2);
-
-            repo.setUserId(userId);
-            repo.setGithubRepoId(githubRepoId);
-            repo.setOwner(parts.length > 0 ? parts[0] : String.valueOf(remote.get("owner")));
-            repo.setName(parts.length > 1 ? parts[1] : String.valueOf(remote.get("name")));
-            repo.setFullName(fullName);
-            repo.setPrivate(Boolean.TRUE.equals(remote.get("private")));
-            repo.setDefaultBranch(remote.get("default_branch") != null
-                    ? String.valueOf(remote.get("default_branch"))
-                    : "main");
-            repo.setLanguage(remote.get("language") != null ? String.valueOf(remote.get("language")) : null);
-            repo.setHtmlUrl(remote.get("html_url") != null ? String.valueOf(remote.get("html_url")) : null);
-            repo.setDescription(remote.get("description") != null ? String.valueOf(remote.get("description")) : null);
-            repo.setUpdatedAt(Instant.now());
-            if (repo.getOwner() == null || repo.getOwner().isBlank()) {
-                Object ownerObj = remote.get("owner");
-                if (ownerObj instanceof Map<?, ?> ownerMap && ownerMap.get("login") != null) {
-                    repo.setOwner(String.valueOf(ownerMap.get("login")));
-                }
-            }
-            saved.add(repositoryRepository.save(repo));
+        for (Map<String, Object> remote : remoteRepos) {
+            saveRepository(userId, remote);
         }
-
-         return saved.stream()
-                .sorted((a, b) -> a.getFullName().compareToIgnoreCase(b.getFullName()))
-                .map(this::toResponse)
-                .toList();
+        // Public imports may not appear in /user/repos; keep them in the workspace.
+        return listStored(userId);
     }
 
+    @Transactional
+    public RepositoryResponse importPublicRepository(UUID userId, String url) {
+        String[] parts = parseRepositoryUrl(url);
+        User user = userService.requiredById(userId);
+        String token = userService.decryptAccessToken(user);
+        Map<String, Object> remote;
+        try {
+            remote = gitHubApiClient.getRepository(token, parts[0], parts[1]);
+        } catch (RestClientResponseException ex) {
+            if (ex.getStatusCode().value() == 404) {
+                throw new NotFoundException("Public repository not found. Check the GitHub URL.");
+            }
+            if (ex.getStatusCode().value() == 403 || ex.getStatusCode().value() == 429) {
+                throw new BadRequestException("GitHub could not read this repository. Check access or try again later.");
+            }
+            throw ex;
+        }
+        if (remote == null || !Boolean.FALSE.equals(remote.get("private"))) {
+            throw new BadRequestException("Only public GitHub repositories can be imported by URL.");
+        }
+        return toResponse(saveRepository(userId, remote));
+    }
+
+    private static String[] parseRepositoryUrl(String url) {
+        try {
+            URI uri = URI.create(url == null ? "" : url.trim());
+            if (!"https".equalsIgnoreCase(uri.getScheme())
+                    || !"github.com".equalsIgnoreCase(uri.getHost())
+                    || uri.getUserInfo() != null || uri.getPort() != -1
+                    || uri.getRawQuery() != null || uri.getRawFragment() != null) {
+                throw new IllegalArgumentException();
+            }
+            String path = uri.getRawPath().replaceFirst("/$", "");
+            String[] parts = path.split("/", -1);
+            if (parts.length != 3) throw new IllegalArgumentException();
+            String owner = parts[1];
+            String name = parts[2].replaceFirst("\\.git$", "");
+            if (!owner.matches("[A-Za-z0-9][A-Za-z0-9-]{0,38}")
+                    || !name.matches("[A-Za-z0-9_.-]{1,100}")
+                    || name.equals(".") || name.equals("..")) {
+                throw new IllegalArgumentException();
+            }
+            return new String[] {owner, name};
+        } catch (IllegalArgumentException ex) {
+            throw new BadRequestException("Enter a repository URL like https://github.com/owner/repository.");
+        }
+    }
+
+    private Repository saveRepository(UUID userId, Map<String, Object> remote) {
+        Long githubRepoId = toLong(remote.get("id"));
+        Repository repo = repositoryRepository.findByUserIdAndGithubRepoId(userId, githubRepoId)
+                .orElseGet(Repository::new);
+        String fullName = String.valueOf(remote.get("full_name"));
+        String[] parts = fullName.split("/", 2);
+        repo.setUserId(userId);
+        repo.setGithubRepoId(githubRepoId);
+        repo.setOwner(parts[0]);
+        repo.setName(parts[1]);
+        repo.setFullName(fullName);
+        repo.setPrivate(Boolean.TRUE.equals(remote.get("private")));
+        repo.setDefaultBranch(remote.get("default_branch") != null
+                ? String.valueOf(remote.get("default_branch")) : "main");
+        repo.setLanguage(remote.get("language") != null ? String.valueOf(remote.get("language")) : null);
+        repo.setHtmlUrl(remote.get("html_url") != null ? String.valueOf(remote.get("html_url")) : null);
+        repo.setDescription(remote.get("description") != null ? String.valueOf(remote.get("description")) : null);
+        repo.setUpdatedAt(Instant.now());
+        return repositoryRepository.save(repo);
+    }
 
     @Transactional(readOnly = true)
     public List<RepositoryResponse> listStored(UUID userId) {

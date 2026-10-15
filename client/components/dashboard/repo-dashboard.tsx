@@ -13,8 +13,9 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useRefreshRepos, useRepos } from "@/hooks/use-repos";
+import { useImportPublicRepo, useRefreshRepos, useRepos } from "@/hooks/use-repos";
 import type { IndexStatus } from "@/lib/api";
 
 type FilterStatus = "ALL" | IndexStatus;
@@ -22,6 +23,8 @@ type FilterStatus = "ALL" | IndexStatus;
 export function RepoDashboard() {
   const reposQuery = useRepos();
   const refresh = useRefreshRepos();
+  const importRepo = useImportPublicRepo();
+  const [repositoryUrl, setRepositoryUrl] = useState("");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<FilterStatus>("ALL");
   const [visibility, setVisibility] = useState<"all" | "public" | "private">(
@@ -64,6 +67,59 @@ export function RepoDashboard() {
       />
 
       <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
+        <form
+          className="rounded-xl border bg-card p-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            importRepo.mutate(repositoryUrl.trim(), {
+              onSuccess: () => {
+                setRepositoryUrl("");
+                setSearch("");
+                setStatus("ALL");
+                setVisibility("all");
+              },
+            });
+          }}
+        >
+          <label htmlFor="public-repository-url" className="text-sm font-medium">
+            Import a public repository
+          </label>
+          <p id="public-repository-help" className="mt-1 text-sm text-muted-foreground">
+            Paste a GitHub repository URL, then choose Index on its card to prepare it for chat.
+          </p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <Input
+              id="public-repository-url"
+              type="url"
+              required
+              maxLength={500}
+              placeholder="https://github.com/owner/repository"
+              value={repositoryUrl}
+              onChange={(event) => {
+                setRepositoryUrl(event.target.value);
+                importRepo.reset();
+              }}
+              aria-describedby="public-repository-help public-repository-result"
+              aria-invalid={importRepo.isError}
+              disabled={importRepo.isPending}
+              className="flex-1"
+            />
+            <Button type="submit" disabled={importRepo.isPending || !repositoryUrl.trim()}>
+              {importRepo.isPending ? "Importing…" : "Import repository"}
+            </Button>
+          </div>
+          <div id="public-repository-result" aria-live="polite">
+            {importRepo.isError && (
+              <p role="alert" className="mt-2 text-sm text-destructive">{importRepo.error.message}</p>
+            )}
+            {importRepo.isSuccess && (
+              <p className="mt-2 text-sm text-muted-foreground">
+                {importRepo.data.fullName} is in your workspace. Choose Index, or Chat if it is already ready.
+              </p>
+            )}
+          </div>
+        </form>
+
         {reposQuery.isLoading && (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (

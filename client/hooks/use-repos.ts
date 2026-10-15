@@ -123,3 +123,18 @@ export function getRepoProgress(repo: Pick<
   if (!repo.filesTotal) return 0;
   return Math.min(100, Math.round((repo.filesProcessed / repo.filesTotal) * 100));
 }
+
+export function useImportPublicRepo() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (url: string) => api.importPublicRepo(url),
+    onSuccess: (repo) => {
+      queryClient.setQueryData(queryKeys.repos.detail(repo.id), repo);
+      queryClient.setQueryData<Repository[]>(queryKeys.repos.list(), (current) =>
+        [...(current ?? []).filter((item) => item.id !== repo.id), repo]
+          .sort((a, b) => a.fullName.localeCompare(b.fullName))
+      );
+      void queryClient.invalidateQueries({ queryKey: queryKeys.repos.list() });
+    },
+  });
+}

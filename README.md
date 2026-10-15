@@ -4,7 +4,7 @@ CogniStream lets you ask questions about a GitHub repository and find the code b
 
 ## Features
 
-- GitHub login and repository sync
+- GitHub login, repository sync, and public repository imports by URL
 - Code indexing with progress tracking and retries
 - Semantic search using local embeddings and pgvector
 - Streamed chat responses with Markdown and source links
@@ -51,7 +51,9 @@ npm ci
 npm run dev -- --hostname localhost
 ```
 
-Open [localhost:3000](http://localhost:3000). Sign in, sync your repositories, and index one before opening chat. The backend runs on port 8080 and PostgreSQL on port 5433.
+Open [localhost:3000](http://localhost:3000). Sign in, sync your repositories, and index one before opening chat. To explore someone else’s public repository, paste its GitHub URL into **Import a public repository**, import it, then choose **Index** on its card.
+
+The backend runs on port 8080 and PostgreSQL on port 5433.
 
 For IntelliJ IDEA, open `cognistream-backend/pom.xml`, select Java 21, and add `-Duser.timezone=Asia/Kolkata` to the application VM options.
 
