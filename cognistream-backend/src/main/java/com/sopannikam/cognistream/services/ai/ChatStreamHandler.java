@@ -23,7 +23,7 @@ import reactor.core.scheduler.Schedulers;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Generation step: call OpenAI via Spring AI and stream tokens to the browser over SSE.
+ * Generation step: call the local model via Spring AI and stream tokens to the browser over SSE.
  */
 @Component
 @RequiredArgsConstructor
@@ -71,7 +71,7 @@ public class ChatStreamHandler {
                         log.error("Chat stream error", err);
                         try {
                             emitter.send(SseEmitter.event().name("error").data(Map.of(
-                                    "message", "AI response failed. Check your API key, credits, and connectivity, then retry.")));
+                                    "message", "AI response failed. Make sure Ollama is running and the chat model is installed, then retry.")));
                             emitter.complete();
                         } catch (Exception ex) {
                             emitter.completeWithError(err);

@@ -6,7 +6,7 @@ CogniStream lets you ask questions about a GitHub repository and find the code b
 
 - GitHub login and repository sync
 - Code indexing with progress tracking and retries
-- Semantic search using OpenAI embeddings and pgvector
+- Semantic search using local embeddings and pgvector
 - Streamed chat responses with Markdown and source links
 - Saved chat sessions and a repository dashboard
 - Encrypted token storage and repository ownership checks
@@ -17,9 +17,18 @@ Java 21, Spring Boot, Spring AI, Spring Security, PostgreSQL/pgvector, Next.js, 
 
 ## Getting started
 
-Install Java 21, Node.js 22, and Docker Desktop. You also need a GitHub OAuth app and an OpenAI API key.
+Install Java 21, Node.js 22, Docker Desktop, and [Ollama](https://ollama.com/download/windows). Create a free GitHub OAuth app for sign-in. Indexing and chat run locally without a paid API key.
 
 Copy `.env.example` to `.env` and fill in your credentials and encryption settings. See [setup instructions](docs/SETUP.md) for the OAuth callback and configuration details.
+
+Start Ollama with `ollama serve` (or open the Ollama app), then download the local models once:
+
+```powershell
+ollama pull nomic-embed-text:latest
+ollama pull qwen2.5-coder:1.5b
+```
+
+Keep Ollama running. Downloads require internet; local inference uses your computer and can be slower on a CPU. GitHub sign-in and repository sync still need internet.
 
 Start the database from the project root:
 

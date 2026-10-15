@@ -30,20 +30,32 @@ spring:
             client-secret: ${GITHUB_CLIENT_SECRET:not-configured}
             scope: read:user,repo
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+  http:
+    clients:
+      connect-timeout: 10s
+      read-timeout: 300s
   ai:
-    openai:
-      api-key: ${OPENAI_API_KEY:not-configured}
+    model:
+      chat: ollama
+      embedding: ollama
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      init:
+        pull-model-strategy: never
       chat:
-        options:
-          model: ${OPENAI_CHAT_MODEL:gpt-4o-mini}
-          temperature: 0.2
+        model: ${OLLAMA_CHAT_MODEL:qwen2.5-coder:1.5b}
+        temperature: 0.2
+        num-ctx: 4096
+        num-predict: 512
+        keep-alive: 0s
       embedding:
-        options:
-          model: text-embedding-3-small
+        model: ${OLLAMA_EMBEDDING_MODEL:nomic-embed-text:latest}
+        keep-alive: 0s
     vectorstore:
       pgvector:
         initialize-schema: true
-        dimensions: 1536
+        table-name: code_vectors_nomic
+        dimensions: 768
         index-type: HNSW
         distance-type: COSINE_DISTANCE
 

@@ -30,7 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class IndexingService {
-    private static final int VECTOR_BATCH_SIZE = 32;
+    private static final int VECTOR_BATCH_SIZE = 4;
     private static final int PROGRESS_EVERY_N_FILES = 5;
 
     private final RepositoryRepository repositoryRepository;
@@ -107,9 +107,9 @@ public class IndexingService {
             }
 
             // Let an embedding failure fail the job instead of claiming READY.
-            if (batch.size() >= VECTOR_BATCH_SIZE) {
-                vectorStore.add(List.copyOf(batch));
-                batch.clear();
+            while (batch.size() >= VECTOR_BATCH_SIZE) {
+                vectorStore.add(List.copyOf(batch.subList(0, VECTOR_BATCH_SIZE)));
+                batch.subList(0, VECTOR_BATCH_SIZE).clear();
             }
 
             processed++;

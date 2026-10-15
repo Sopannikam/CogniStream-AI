@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -59,6 +61,26 @@ class IndexingServiceTests {
         verify(vectors).add(anyList());
         assertThat(repo.getIndexStatus()).isEqualTo(IndexStatus.READY);
         assertThat(repo.getChunkCount()).isEqualTo(1);
+    }
+
+    @Test
+    void aLargeFileIsEmbeddedInBoundedBatchesWithoutDroppingChunks() {
+        List<Document> chunks = IntStream.range(0, 11)
+                .mapToObj(i -> new Document("chunk " + i)).toList();
+        when(chunker.chunkFile(anyString(), anyString(), anyString())).thenReturn(chunks);
+        List<Document> stored = new ArrayList<>();
+        doAnswer(invocation -> {
+            List<Document> batch = invocation.getArgument(0);
+            assertThat(batch).hasSizeLessThanOrEqualTo(4);
+            stored.addAll(batch);
+            return null;
+        }).when(vectors).add(anyList());
+
+        service.indexAsync(repoId, userId);
+
+        assertThat(stored).containsExactlyElementsOf(chunks);
+        assertThat(repo.getIndexStatus()).isEqualTo(IndexStatus.READY);
+        assertThat(repo.getChunkCount()).isEqualTo(chunks.size());
     }
 
     @Test

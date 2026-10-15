@@ -3,7 +3,7 @@ package com.sopannikam.cognistream.services.ai;
 import org.springframework.stereotype.Component;
 
 /**
- * Builds the prompts sent to OpenAI.
+ * Builds the prompts sent to the local chat model.
  *
  * <p>We use two messages:
  * <ul>

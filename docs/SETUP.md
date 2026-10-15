@@ -8,11 +8,22 @@ Set application name to **CogniStream AI**, homepage to `http://localhost:3000`,
 
 The application requests `read:user` and `repo` to read repositories accessible to the signed-in user. Organization repositories can require organization approval.
 
-## OpenAI
+## Local AI (no paid API)
 
-Create an API key in the [OpenAI Platform](https://platform.openai.com/api-keys) and save it as `OPENAI_API_KEY` in the root `.env`. Your API project needs available quota. Keys are loaded by the backend and must not use a `NEXT_PUBLIC_` prefix.
+Install [Ollama for Windows](https://ollama.com/download/windows). Open Ollama or run `ollama serve`, then download the two models once:
 
-The backend uses Spring AI's OpenAI provider: `text-embedding-3-small` with 1536 dimensions for indexing, and a configurable chat model (`OPENAI_CHAT_MODEL`, default `gpt-4o-mini`). If the default model is unavailable to your API project, set a chat-completions-compatible model you have access to; do not change embedding dimensions without rebuilding the vector table.
+```powershell
+ollama pull nomic-embed-text:latest
+ollama pull qwen2.5-coder:1.5b
+```
+
+The Windows helpers `scripts/start-ai.cmd` and `scripts/setup-models.cmd` run the same steps. The AI launcher disables Ollama cloud features. Keep Ollama running alongside the backend and database.
+
+The root `.env` uses `OLLAMA_BASE_URL=http://localhost:11434`, `OLLAMA_CHAT_MODEL=qwen2.5-coder:1.5b`, and `OLLAMA_EMBEDDING_MODEL=nomic-embed-text:latest`. No OpenAI key or API billing is needed. Model downloads use internet and disk space; inference uses your computer's CPU/RAM or supported GPU. The small coding model is the default for modest hardware; answers may be slower and less accurate than larger models.
+
+Embeddings have 768 dimensions and use a separate `code_vectors_nomic` table. Existing users, repositories, chats, and the old vector table are preserved. Re-index repositories after switching models before using chat. Changing the embedding model again requires a matching dimension and a separate/rebuilt vector table; embeddings from different models cannot be mixed.
+
+GitHub OAuth and repository downloads still need internet. Larger local chat models can be selected through `OLLAMA_CHAT_MODEL` after downloading them, if your computer has enough memory. Restart the backend after changing `.env`.
 
 ## Local encryption
 
@@ -24,10 +35,14 @@ Start Docker Desktop, then `docker compose up -d postgres` from the root. The Co
 
 ## Troubleshooting
 
+- Ollama connection refused: open Ollama or run `scripts/start-ai.cmd`.
+- Model not found: run `scripts/setup-models.cmd`, then retry.
+- Local model out of memory: close unused apps or choose a smaller chat model in `.env`, then restart the backend.
+
 - Docker engine unavailable: finish starting Docker Desktop with Linux containers, then rerun Compose.
 - `localhost:5433` connection refused: check `docker compose ps` and database health.
 - `Asia/Calcutta` rejected: add `-Duser.timezone=Asia/Kolkata` to IntelliJ VM options; Maven's run configuration already includes it.
 - OAuth mismatch: the callback must be the backend's `/login/oauth2/code/github`, not the frontend's `/auth/callback`.
 - 401 after login: use `localhost` for both origins, verify the cookie name is `COGNISTREAM_SESSION`, then sign in again.
-- Indexing FAILED: inspect the backend log and displayed job error; check GitHub access, OpenAI key, and quota.
+- Indexing FAILED: inspect the backend log and displayed job error; check GitHub access, make sure Ollama is running at the configured URL, and check `ollama list` for both models.
 - Changing a PostgreSQL password in `.env` does not change a password inside an existing volume. Keep the initial database credentials or change the database role password deliberately.
