@@ -48,7 +48,7 @@ In another terminal, start the frontend:
 ```powershell
 cd client
 npm ci
-npm run dev
+npm run dev -- --hostname localhost
 ```
 
 Open [localhost:3000](http://localhost:3000). Sign in, sync your repositories, and index one before opening chat. The backend runs on port 8080 and PostgreSQL on port 5433.
