@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.core.task.TaskRejectedException;
+import com.sopannikam.cognistream.exceptions.ServiceUnavailableException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -59,7 +61,13 @@ public class RepoController {
     public ResponseEntity<RepositoryResponse> index(@PathVariable UUID id) {
         UUID userId = currentUser.require().getId();
         Repository repo = indexingService.startIndexing(id, userId);
-        indexingService.indexAsync(id, userId);
+        try {
+            indexingService.indexAsync(id, userId);
+        } catch (TaskRejectedException ex) {
+            String message = "Indexing queue is full. Please try again later.";
+            indexingService.markFailed(id, message);
+            throw new ServiceUnavailableException(message);
+        }
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(repoService.toResponse(repo));
     }
 

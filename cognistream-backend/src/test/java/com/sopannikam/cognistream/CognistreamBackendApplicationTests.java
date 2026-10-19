@@ -2,6 +2,19 @@ package com.sopannikam.cognistream;
 
 import java.util.Map;
 import java.util.UUID;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import org.springframework.http.MediaType;
+import com.sopannikam.cognistream.entity.IndexStatus;
+import com.sopannikam.cognistream.entity.Repository;
+import com.sopannikam.cognistream.entity.ChatSession;
+import com.sopannikam.cognistream.repository.RepositoryRepository;
+import com.sopannikam.cognistream.repository.ChatSessionRepository;
+import com.sopannikam.cognistream.services.indexing.IndexingService;
+import com.sopannikam.cognistream.exceptions.BadRequestException;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.model.ChatModel;
@@ -20,6 +33,7 @@ import com.sopannikam.cognistream.services.UserService;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oauth2Login;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(properties = {
@@ -36,6 +50,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class CognistreamBackendApplicationTests {
     @Autowired MockMvc mvc;
     @Autowired UserService userService;
+    @Autowired RepositoryRepository repositories;
+    @Autowired ChatSessionRepository sessions;
+    @Autowired IndexingService indexingService;
 
     @Test
     void protectedApiRejectsAnonymousRequests() throws Exception {
@@ -73,5 +90,62 @@ class CognistreamBackendApplicationTests {
         mvc.perform(get("/api/repos/" + UUID.randomUUID())
                 .with(oauth2Login().oauth2User(new AppUserPrincipal(user, Map.of("id", 102L)))))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void malformedIdsAndInvalidBodiesReturnBadRequest() throws Exception {
+        User user = userService.upsertFromGitHub(Map.of("id", 110L, "login", "validation"), "token", "repo");
+        var principal = new AppUserPrincipal(user, Map.of("id", 110L));
+        mvc.perform(get("/api/repos/not-a-uuid").with(oauth2Login().oauth2User(principal)))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("status").value(400));
+        mvc.perform(post("/api/repos/import").with(oauth2Login().oauth2User(principal))
+                .contentType(MediaType.APPLICATION_JSON).content("{invalid"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/repos/import").with(oauth2Login().oauth2User(principal))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"url\":\"\"}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/chat/sessions").with(oauth2Login().oauth2User(principal))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"repositoryId\":\"" + UUID.randomUUID() + "\",\"title\":\"" + "x".repeat(201) + "\"}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/chat/sessions/" + UUID.randomUUID() + "/messages")
+                .with(oauth2Login().oauth2User(principal)).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"content\":\"" + "x".repeat(8001) + "\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void anotherUsersSessionCannotBeRead() throws Exception {
+        User owner = userService.upsertFromGitHub(Map.of("id", 111L, "login", "session-owner"), "token", "repo");
+        User other = userService.upsertFromGitHub(Map.of("id", 112L, "login", "other-user"), "token", "repo");
+        ChatSession session = sessions.save(ChatSession.builder().userId(owner.getId())
+                .repositoryId(UUID.randomUUID()).title("Private chat").build());
+        mvc.perform(get("/api/chat/sessions/" + session.getId())
+                .with(oauth2Login().oauth2User(new AppUserPrincipal(other, Map.of("id", 112L)))))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void concurrentIndexRequestsAdmitOnlyOneJob() throws Exception {
+        User user = userService.upsertFromGitHub(Map.of("id", 113L, "login", "concurrency"), "token", "repo");
+        Repository repo = repositories.save(Repository.builder().userId(user.getId()).githubRepoId(99113L)
+                .owner("owner").name("project").fullName("owner/project").defaultBranch("main").build());
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        Callable<Boolean> request = () -> {
+            ready.countDown();
+            if (!start.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("Start latch timed out");
+            try { indexingService.startIndexing(repo.getId(), user.getId()); return true; }
+            catch (BadRequestException expected) { return false; }
+        };
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var first = executor.submit(request);
+            var second = executor.submit(request);
+            assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+            assertThat(List.of(first.get(10, TimeUnit.SECONDS), second.get(10, TimeUnit.SECONDS)))
+                    .containsExactlyInAnyOrder(true, false);
+        }
+        assertThat(repositories.findById(repo.getId()).orElseThrow().getIndexStatus()).isEqualTo(IndexStatus.INDEXING);
     }
 }

@@ -46,3 +46,19 @@ Start Docker Desktop, then `docker compose up -d postgres` from the root. The Co
 - 401 after login: use `localhost` for both origins, verify the cookie name is `COGNISTREAM_SESSION`, then sign in again.
 - Indexing FAILED: inspect the backend log and displayed job error; check GitHub access, make sure Ollama is running at the configured URL, and check `ollama list` for both models.
 - Changing a PostgreSQL password in `.env` does not change a password inside an existing volume. Keep the initial database credentials or change the database role password deliberately.
+
+## Starting each time
+
+1. Open Docker Desktop and wait for its engine.
+2. Run `scripts/start-database.cmd` to start `cognistream-pgvector`.
+3. Open Ollama, or run `scripts/start-ai.cmd`. Models only need downloading once with `scripts/setup-models.cmd`.
+4. Run `scripts/start-backend.cmd`, or run `CogniStreamApplication` in IntelliJ with Java 21 and VM option `-Duser.timezone=Asia/Kolkata`.
+5. For the optional interface, run `scripts/start-client.cmd` and visit http://localhost:3000. Avoid starting a second backend or client on the same ports.
+
+The client now uses React and Vite. After updating from the older client, run `npm ci` once inside `client/`. Its public environment variable is `VITE_API_BASE_URL`, replacing `NEXT_PUBLIC_API_BASE_URL`. Backend credentials, OAuth callback, saved conversations, and database data are preserved.
+
+Stop processes with Ctrl+C in the windows you started. Stop the database container when finished; retain its volume to preserve data.
+
+## Backend-only exploration
+
+Import `docs/openapi.json` into Postman, or open `docs/requests.http` in an HTTP client. OAuth uses the `COGNISTREAM_SESSION` cookie. Sign in in the browser, then supply your own cookie locally in the API client; browser and Postman cookie jars are separate. Never commit real cookies or credentials.

@@ -1,0 +1,55 @@
+# Sign in with GitHub in the browser first. Replace placeholders only locally.
+# Never commit a real session cookie.
+@baseUrl = http://localhost:8080
+@sessionCookie = replace-locally
+@repositoryId = replace-with-repository-uuid
+@sessionId = replace-with-chat-session-uuid
+
+### Health (no authentication)
+GET {{baseUrl}}/actuator/health
+
+### Current user
+GET {{baseUrl}}/api/auth/me
+Cookie: COGNISTREAM_SESSION={{sessionCookie}}
+
+### Stored workspace
+GET {{baseUrl}}/api/repos?refresh=false
+Cookie: COGNISTREAM_SESSION={{sessionCookie}}
+
+### Sync metadata, preserving public imports
+GET {{baseUrl}}/api/repos?refresh=true
+Cookie: COGNISTREAM_SESSION={{sessionCookie}}
+
+### Import a public repository; does not start indexing
+POST {{baseUrl}}/api/repos/import
+Cookie: COGNISTREAM_SESSION={{sessionCookie}}
+Content-Type: application/json
+
+{"url":"https://github.com/octocat/Spoon-Knife"}
+
+### Start indexing; returns 202, or 503 if the queue is full
+POST {{baseUrl}}/api/repos/{{repositoryId}}/index
+Cookie: COGNISTREAM_SESSION={{sessionCookie}}
+
+### Read progress
+GET {{baseUrl}}/api/repos/{{repositoryId}}/status
+Cookie: COGNISTREAM_SESSION={{sessionCookie}}
+
+### Create a chat for a READY repository
+POST {{baseUrl}}/api/chat/sessions
+Cookie: COGNISTREAM_SESSION={{sessionCookie}}
+Content-Type: application/json
+
+{"repositoryId":"{{repositoryId}}","title":"Code walkthrough"}
+
+### Stream an answer
+POST {{baseUrl}}/api/chat/sessions/{{sessionId}}/messages
+Cookie: COGNISTREAM_SESSION={{sessionCookie}}
+Content-Type: application/json
+Accept: text/event-stream
+
+{"content":"Where is authentication handled?"}
+
+### Saved messages
+GET {{baseUrl}}/api/chat/sessions/{{sessionId}}
+Cookie: COGNISTREAM_SESSION={{sessionCookie}}

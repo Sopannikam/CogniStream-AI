@@ -44,8 +44,9 @@ public class IndexingService {
     @Value("${app.indexing.max-file-bytes:102400}")
     private long maxFileBytes;
 
+    @Transactional
     public Repository startIndexing(UUID repoId, UUID userId) {
-        Repository repo = repositoryRepository.findByIdAndUserId(repoId, userId)
+        Repository repo = repositoryRepository.findForIndexing(repoId, userId)
                 .orElseThrow(() -> new NotFoundException("Repository not found"));
 
         if (repo.getIndexStatus() == IndexStatus.INDEXING) {
@@ -189,7 +190,7 @@ public class IndexingService {
     }
 
      @Transactional
-    protected void markFailed(UUID repoId, String message) {
+    public void markFailed(UUID repoId, String message) {
         repositoryRepository.findById(repoId).ifPresent(repo -> {
             repo.setIndexStatus(IndexStatus.FAILED);
             repo.setErrorMessage(message != null && message.length() > 2000

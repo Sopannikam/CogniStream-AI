@@ -1,6 +1,6 @@
-# CogniStream AI client
+# CogniStream demo client
 
-The Next.js client for GitHub login, repository sync, indexing progress, and chat. See the [project README](../README.md) for setup.
+A small React + TypeScript interface for the Spring Boot API: GitHub sign-in, repository import/sync, indexing progress, and streamed chat with source links. Business rules and authentication decisions live in the backend. See the [project README](../README.md) for setup.
 
 ## Development
 
@@ -11,24 +11,25 @@ npm ci
 npm run dev
 ```
 
-Open http://localhost:3000. To change the backend address, copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_API_BASE_URL`.
+Open http://localhost:3000. To change the backend address, copy `.env.example` to `.env.local` and set `VITE_API_BASE_URL`. Keep GitHub credentials in the root backend `.env`, never in browser variables.
 
 ## Checks
 
 ```sh
 npm test
-npm run lint
+npm run check
 npm run build
 ```
 
-Streaming tests cover split UTF-8 characters, SSE framing, server errors, and interrupted responses. Run `npm start` to preview a production build.
+Streaming tests cover split UTF-8 characters, SSE framing, server errors, and interrupted responses. The build checks TypeScript and generates static assets in `dist/`. Run `npm start` to preview that build. Static hosting needs an `index.html` fallback for client-side routes.
 
 ## Code layout
 
-- `app/`: routes and layouts.
-- `components/dashboard/`: repository sync, filters, and indexing status.
-- `components/chat/`: sessions, messages, composer, and source citations.
-- `hooks/`: authentication and query state.
-- `lib/stream-chat.ts`: reads the backend SSE stream.
+- `src/App.tsx`: backend session lookup and routes.
+- `src/pages/Workspace.tsx`: repository operations and indexing progress.
+- `src/pages/RepositoryChat.tsx`: conversations, streaming, and citations.
+- `src/lib/api.ts`: typed REST calls using the backend session cookie.
+- `src/lib/stream-chat.ts`: incremental SSE decoding.
+- `src/styles.css`: plain responsive CSS.
 
-Shared UI primitives live in `components/ui/`; Markdown answers use Streamdown. Fonts use the local system stack, so builds do not need to download fonts.
+There is no server-rendering framework or component library. Fonts use the local system stack, so builds do not need to download fonts.

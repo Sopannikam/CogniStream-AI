@@ -26,3 +26,15 @@ Create-session body: `{"repositoryId":"uuid","title":"Optional title"}`.
 Send-message body: `{"content":"Where is authentication implemented?"}`.
 
 The streaming endpoint emits `user_message`, JSON-string `token`, `assistant_message` with citations, `done`, or `error`. The frontend uses credentialed `fetch` with a readable stream because the endpoint is POST. It does not use EventSource.
+
+## Contract and request examples
+
+Import [openapi.json](openapi.json) into Postman or an OpenAPI viewer. [requests.http](requests.http) contains examples for authentication lookup, imports, indexing, progress, and streaming chat. Sign in through GitHub first and supply your own `COGNISTREAM_SESSION` cookie locally. The browser and API client do not share a cookie jar.
+
+For command-line streaming, use a client with output buffering disabled, such as `curl -N`. The question request must include the backend session cookie and a JSON body with `content`. No model credentials belong in client requests.
+
+## Validation and errors
+
+Import URLs are required and limited to 500 characters. Questions are nonblank and limited to 8,000 characters. Optional chat titles are limited to 200 characters. Invalid JSON and malformed UUIDs return 400. An already-indexing repository returns 400. A saturated indexing executor marks the attempted job FAILED and returns 503 so it can be retried.
+
+Application JSON errors contain `status`, `error`, `message`, and `timestamp`. The authentication entry point may return an empty 401 body. Unexpected exceptions are logged server-side and return a generic 500 message. Worker failures are read through the job status endpoint: 202 acknowledges submission, not completed indexing.

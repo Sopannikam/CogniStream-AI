@@ -1,5 +1,3 @@
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
+# React demo client
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
+This folder is a React + Vite client for the Spring Boot API. Keep it small: authentication, repository management, indexing progress, and chat. Backend rules belong in the Spring Boot service. Never put credentials in browser code. Run `npm run check`, `npm test`, and `npm run build` after changes.

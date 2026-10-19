@@ -3,8 +3,9 @@ package com.sopannikam.cognistream.dto;
 import java.util.UUID;
 
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 public record CreateChatSessionRequest(
         @NotNull UUID repositoryId,
-        String title) {
+        @Size(max = 200) String title) {
 }
