@@ -63,7 +63,7 @@ export function Workspace() {
       setUrl("");
       setSearch("");
       setNotice(
-        `${repo.fullName} is in your workspace. Choose Index to prepare it for chat.`,
+        `${repo.fullName} is in your workspace.`,
       );
     });
   }
